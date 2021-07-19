@@ -47,7 +47,8 @@ extension ViewController: UITableViewDataSource{
 
 extension ViewController: UITableViewDelegate{
     func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
-        performSegue(withIdentifier: "segueone", sender: self)
+        guard let nextvc = storyboard?.instantiateViewController(identifier: "nextvc") else {return}
+        navigationController?.pushViewController(nextvc, animated: true)
         print("Row number \(indexPath.row) was selected")
     }
 }

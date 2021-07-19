@@ -31,12 +31,23 @@ struct message: MessageType{
     
 }
 
-
-class messages_vc: MessagesViewController {
+struct media: MediaItem{
+    var url: URL?
     
-    let current_user = sender(senderId: "123", displayName: "Vivaan")
-    let other_user = sender(senderId: "876", displayName: "World")
-    var messages = [message]()
+    var image: UIImage?
+    
+    var placeholderImage: UIImage
+    
+    var size: CGSize
+    
+}
+
+
+class messages_vc: MessagesViewController{
+    
+    private let current_user = sender(senderId: "123", displayName: "Vivaan")
+    private let other_user = sender(senderId: "876", displayName: "World")
+    private var messages = [message]()
     
     
     override func viewDidLoad() {
@@ -46,26 +57,73 @@ class messages_vc: MessagesViewController {
         messagesCollectionView.messagesDisplayDelegate = self
         messageInputBar.delegate = self
         
+        setupInputButton()
+        
+        navigationItem.title = "Vivaan"
+        
         //sample data
         messages.append(message(sender: other_user, messageId: "123", sentDate: Date().addingTimeInterval(-86400) , kind: .text("Hey Vivaan, You are going to influence")))
         messages.append(message(sender: current_user, messageId: "143", sentDate: Date().addingTimeInterval(-86405) , kind: .text("Hey Vivaan, You are going to influence")))
         messages.append(message(sender: other_user, messageId: "153", sentDate: Date().addingTimeInterval(-86404) , kind: .text("Hey Vivaan, You are going to influence")))
         messages.append(message(sender: current_user, messageId: "163", sentDate: Date().addingTimeInterval(-86403) , kind: .text("Hey Vivaan, You are going to influence")))
+        messages.append(message(sender: current_user, messageId: "234", sentDate: Date(), kind: .photo(media(url: nil, image: UIImage(named: "Vivaan"), placeholderImage: UIImage(named: "Vivaan")!, size: CGSize(width: 200, height: 200)))))
         
     }
-     func AddMessage(_ input: String){
+     fileprivate func AddMessage(_ input: String){
         let new_message = message(sender: currentSender(), messageId: "504", sentDate: Date().addingTimeInterval(-8733), kind: .text(input))
         messages.append(new_message)
         messagesCollectionView.reloadData()
+        messagesCollectionView.scrollToLastItem()
     }
     
-    func configureAvatarView(_ avatarView: AvatarView, for message: MessageType, at indexPath: IndexPath, in messagesCollectionView: MessagesCollectionView) {
-        if message.sender.displayName == "Vivaan"{
+     func configureAvatarView(_ avatarView: AvatarView, for message: MessageType, at indexPath: IndexPath, in messagesCollectionView: MessagesCollectionView) {
+        if isFromCurrentSender(message: message){
             avatarView.image = UIImage(named: "Vivaan")
         }
     }
     
+    func backgroundColor(for message: MessageType, at indexPath: IndexPath, in messagesCollectionView: MessagesCollectionView) -> UIColor {
+        if isFromCurrentSender(message: message) == true{
+            return UIColor.systemPink
+        }else{
+            return UIColor.systemPurple
+        }
+    }
+    
+    private func setupInputButton() {
+            let button = InputBarButtonItem()
+            button.setSize(CGSize(width: 35, height: 35), animated: false)
+            button.setImage(UIImage(systemName: "paperclip"), for: .normal)
+            button.onTouchUpInside { [weak self] _ in
+                self?.presentactionsheet()
+            }
+            messageInputBar.setLeftStackViewWidthConstant(to: 36, animated: false)
+            messageInputBar.setStackViewItems([button], forStack: .left, animated: false)
+        }
+    
+    
+    
    
+}
+
+extension messages_vc: UIImagePickerControllerDelegate & UINavigationControllerDelegate {
+    func presentactionsheet(){
+        let picker = UIImagePickerController()
+        picker.delegate = self
+        picker.sourceType = .photoLibrary
+        present(picker, animated: true, completion: nil)
+        
+    }
+    
+    func imagePickerController(_ picker: UIImagePickerController, didFinishPickingMediaWithInfo info: [UIImagePickerController.InfoKey : Any]) {
+        //once image is selected
+        let my_image = info[.originalImage] as? UIImage
+        let my_message = message(sender: current_user, messageId: "234", sentDate: Date(), kind: .photo(media(url: nil, image: my_image, placeholderImage: my_image!, size: CGSize(width: 200, height: 200))))
+        messages.append(my_message)
+        messagesCollectionView.reloadData()
+        messagesCollectionView.scrollToLastItem()
+        picker.dismiss(animated: true, completion: nil)
+    }
 }
 
 //MARK:- Data Source
@@ -92,7 +150,49 @@ extension messages_vc: MessagesDataSource{
 
 //MARK:- LayoutDelegate
 
+
+//need to specify cell size to add attributed text above and below cell
+
 extension messages_vc: MessagesLayoutDelegate{
+    
+    func cellTopLabelHeight(for message: MessageType, at indexPath: IndexPath, in messagesCollectionView: MessagesCollectionView) -> CGFloat {
+            return 5
+        }
+
+        func cellBottomLabelHeight(for message: MessageType, at indexPath: IndexPath, in messagesCollectionView: MessagesCollectionView) -> CGFloat {
+            return 5
+        }
+
+        func messageTopLabelHeight(for message: MessageType, at indexPath: IndexPath, in messagesCollectionView: MessagesCollectionView) -> CGFloat {
+            return 5
+        }
+
+        func messageBottomLabelHeight(for message: MessageType, at indexPath: IndexPath, in messagesCollectionView: MessagesCollectionView) -> CGFloat {
+            return 15
+        }
+    
+    func messageBottomLabelAttributedText(for message: MessageType, at indexPath: IndexPath) -> NSAttributedString? {
+        let dateFormatter = DateFormatter()
+        dateFormatter.dateFormat = "MM-dd-yyyy HH:MM:SS"
+
+        
+        
+        return NSAttributedString(string: dateFormatter.string(from: message.sentDate), attributes: [NSAttributedString.Key.foregroundColor: UIColor.lightGray, NSAttributedString.Key.font: UIFont.systemFont(ofSize: 10)])
+    }
+    
+//    func cellTopLabelAttributedText(for message: MessageType, at indexPath: IndexPath) -> NSAttributedString? {
+//        let style = NSMutableParagraphStyle()
+//        if isFromCurrentSender(message: message) {
+//            style.alignment = .left
+//        }else{
+//            style.alignment = .right
+//
+//        }
+//
+//        return NSAttributedString(string: "Read", attributes: [NSAttributedString.Key.foregroundColor: UIColor.lightGray, NSAttributedString.Key.font: UIFont.systemFont(ofSize: 10), NSAttributedString.Key.paragraphStyle: style])
+//    }
+
+     
     
 }
 
